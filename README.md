@@ -26,7 +26,10 @@ All patches built for xeBuild will work on gxBuild; The major difference is a 16
 
 Leaving unlicensed as no party involved has given me permission.
 
-- Glitch3 by [15432]()
+- JTAG by [tmbinc](), [GliGli]() and [Tiros]()
+- Glitch3 SMC by [15432]()
 - SMC+ by [15432]() and [Octal450]()
-- JTAG by [tmbinc]()
+- Smc360 Research by [wurthless-elektroniks]()
+- x360utils JTAG SMC patcher by [Swizzy]()
+- Glitch1/2 SMC patcher by [c0z]
 - ~~RJTAG and CR4 by Team Xecuter~~ No credit deserved

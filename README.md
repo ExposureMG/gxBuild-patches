@@ -8,11 +8,7 @@ Raw source code for SMC patches, converted to GXP (xeBuild-like) format.
 
 ## Others
 
-SMC+ and Glitch1/2 can be applied on top of other patches. Instead of building a binary for every possibility, SMC+ and Glitch1/2 SMC patches are integrated directly into [gxBuild](https://github.com/ExposureMG/gxBuild).
-
-As for CR4 SMC:
-
-Do we even need it? The CR4 glitcher is obsolete and for the most part is only used by collectors. If you *really* need CR4 SMC, couldn't you just use an ECC? gxBuild supports parsing, building and applying ECCs fine.
+SMC+ and Glitch SMC patches are available in standalone/ as JSON files. Unfortunately these patches are NOT compatible with any other builder. This is because xeBuild hardcoded many of these SMC patches. The JSON files are extremely simple, in "<sig>": "<patch>" format, and could be parsed and applied relatively easily.
 
 
 ## Developer

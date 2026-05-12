@@ -1,33 +1,25 @@
 # GXP Sources
 
-Source code for GXP and GXS patches. The files hosted here will likely not work with any builder other then [gxBuild](https://github.com/ExposureMG/gxBuild).
+Source code for GXP, GXS and JSON patches. The files hosted here will likely not work with any builder other then [gxBuild](https://github.com/ExposureMG/gxBuild).
 
-### Full Patchsets
+Also contains a Patch Converter (gxp-converter)
 
-- Argon Data SMC
-- Aud Clamp SMC
-- Glitch3 SMC
+## About
 
-### Addon Patches
+JSON: Signature-based patches
+GXS (GX Source): One compiled section of GXP
+GXP (GX Patchset): Compiled and built multi-patch binaries
 
-- SMC+
-- Glitch1/2 SMC
-- Falcon JTAG Fixes
-- Disable Eject (XSB/PSB and KSB)
-- No Drive ROL Blink (XSB/PSB and KSB)
-- Unconditional Boot
-
-## Where is the rest?
-
-Since 1BL/CB/CD/KHV patches remain the same, i am just prefixing a header and suffixing the smc patches onto xeBuild binaries. If you are looking for the source, [Mitchell Waite](https://github.com/mitchellwaite) has a [repository]() of xeBuild patches.
+All patches built for xeBuild will work on gxBuild; The major difference in GXP is a 16-byte header at the beginning to stop backwards compatibility. xeBuild has no GXS support, and would interpret 4-section RGH patches as JTAG patches.
 
 ## Developer
 
-GXJ: Signature-based patches
-GXS: Offset-based patches
-GXP: xeBuild + GXS
+View [releases]() and [src] for a full-fledged patch converter:
 
-All patches built for xeBuild will work on gxBuild; The major difference in GXP is a 16-byte header at the beginning to stop backwards compatibility. xeBuild has no SMC patchfile system, and would interpret 4-section RGH patches as JTAG patches.
+- Compiled xeBuild to GXS
+- Compiled RGH 1.3 to GXS
+- Binary Diff to GXS
+- GXP Builder
 
 ## License
 
@@ -35,7 +27,8 @@ Leaving unlicensed as no party involved has given me permission.
 
 - JTAG SMC by [tmbinc]()
 - Glitch3 SMC by [15432]()
+- RGH1.3 by [wurthless-elektroniks]()
 - SMC+ by [15432]() and [Octal450]()
 - Smc360 Research by [wurthless-elektroniks]()
 - x360utils JTAG SMC patcher by [Swizzy]()
-- Glitch1/2 SMC patcher by c0z
+- Glitch1/2 SMC patch by c0z

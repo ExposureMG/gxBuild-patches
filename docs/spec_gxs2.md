@@ -73,9 +73,10 @@ ASM sections are compiled using platform-specific toolchains:
 **macOS:**
 - ASM compilation is not supported
 
-### TXT vs GXS Comparison
 
-**Traditional TXT Format:**
+
+
+**LoaderPatch Format:**
 ```
 .code b 0xE3C
                  or        %r11, %r11, %r10 # do what we patched did originally
@@ -105,6 +106,35 @@ ASM sections have access to standard PowerPC register definitions and xeBuild-co
 - Register definitions: `hrmor`, `hsprg0`, `ctr`, `lr`, etc.
 - Base address: `KBASE, 0x80000000`
 - Standard PowerPC instructions and syntax
+
+## File Includes
+
+GXS 2.0 supports file inclusion for modular patch development:
+
+### Include Syntax
+
+```
+[INC] filename.gxs
+```
+
+**Requirements:**
+- Start with `[INC]` followed by the filename
+- Filename is relative to the current directory
+- Supports nested includes (includes within includes)
+- Circular include detection prevents infinite loops
+
+**Example:**
+```
+# Main patch file
+[INC] base-patches.gxs
+[INC] custom-features.gxs
+
+# Additional patches specific to this file
+0x1000: 48 00 00 01
+[ASM] 0x2000:
+	mfmsr %r5
+[!ASM]
+```
 
 ### Example Conversion
 

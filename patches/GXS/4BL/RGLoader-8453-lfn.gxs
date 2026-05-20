@@ -1,0 +1,178 @@
+# RGLoader-8453-lfn Patch
+# Converted from txt format to GXS 2.0 format
+
+[INC] RGLoader-8453-base.gxs
+
+# code section 1
+[ASM] 0x534:
+	mfmsr     %r7
+	li        %r8, 16
+	andc      %r8, %r7, %r8
+	li        %r5, 512
+	oris      %r5, %r5, 32768
+	sldi      %r5, %r5, 32
+	oris      %r5, %r5, 51217
+	ori       %r5, %r5, 4
+	loadPatchSet:
+	mtmsrd    %r8, 0
+	isync
+	lwz       %r4, 0(%r5)
+	lwz       %r3, 4(%r5)
+	addi      %r5, %r5, 8
+	cmpwi     cr6, %r4, -1
+	beq       cr6, endPatches
+	mtspr     %CTR, %r3
+	loadPatches:
+	mtmsrd    %r8, 0
+	isync
+	lwz      %r3, 0(%r5)
+	mtmsrd    %r7, 0
+	isync
+	stw      %r3, 0(%r4)
+	dcbst     %r0, %r4
+	icbi      %r0, %r4
+	sync
+	isync
+	addi      %r4, %r4, 4
+	addi      %r5, %r5, 4
+	bdnz      loadPatches
+	b         loadPatchSet
+	endPatches:
+	lis       %r3, 40
+[!ASM]
+
+# code section 2
+[ASM] 0x27C:
+	.set hrmor, 313
+	.set hsprg0, 314
+	.set hsprg1, 315
+	.set srr0, 26
+	.set srr1, 27
+	_start:
+	bl init_regs
+	li	%r3, 17
+	rldicr	%r3, %r3, 56, 7
+	std	%r3, 0(%r7)
+	stw	%r9, 4228(%r8)
+	stw	%r10, 4224(%r8)
+	stw	%r11, 4224(%r8)
+	stw	%r11, 4224(%r8)
+	stw	%r11, 4224(%r8)
+	stw	%r11, 4228(%r8)
+	li	%r3, 18
+	rldicr	%r3, %r3, 56, 7
+	std	%r3, 0(%r7)
+	1:
+	lwz	%r12, 4244(%r8)
+	and.	%r12, %r12, %r9
+	beq	1b
+	stw	%r9, 4244(%r8)
+	lwz	%r12, 4240(%r8)
+	lwz	%r3, 4240(%r8)
+	lwz	%r3, 4240(%r8)
+	lwz	%r3, 4240(%r8)
+	stw	%r11, 4244(%r8)
+	rlwinm	%r3, %r12, 8, 24, 31
+	cmpwi	%r3, 1
+	bne	1b
+	rlwinm	%r3, %r12, 16, 24, 31
+	cmpwi	%r3, 18
+	beq	start_xell
+	lis       %r3, 768
+	b        -22052
+	start_xell:
+	li	%r3, 19
+	rldicr	%r3, %r3, 56, 7
+	std	%r3, 0(%r7)
+	bl init_pci
+	li	%r3, 20
+	rldicr	%r3, %r3, 56, 7
+	std	%r3, 0(%r7)
+	mtspr	hrmor,%r11
+	mr 	%r9,%r6
+	lis	%r4, 1
+	mtctr   %r4
+	1:	lwz     %r8, 0(%r5)
+	stw     %r8, 0(%r6)
+	dcbst   %r0, %r6
+	icbi	%r0, %r6
+	sync	0
+	isync
+	addi    %r6, %r6, 4
+	addi    %r5, %r5, 4
+	bdnz    1b
+	li	%r3, 21
+	rldicr	%r3, %r3, 56, 7
+	std	%r3, 0(%r7)
+	li	%r4, 48
+	mfmsr	%r3
+	andc	%r3, %r3, %r4
+	mtsrr1	%r3
+	mtsrr0	%r9
+	rfid
+	init_regs:
+	li	%r5,512
+	oris	%r5,%r5,32768
+	rldicr	%r5,%r5,32,31
+	oris 	%r5,%r5,51217
+	lis	%r6,32768
+	rldicr	%r6,%r6,32,31
+	oris 	%r6,%r6,16384
+	li	%r7,512
+	oris	%r7,%r7,32768
+	rldicr	%r7,%r7,32,31
+	ori	%r7,%r7,4112
+	oris 	%r7,%r7,6
+	li	%r8,512
+	oris	%r8,%r8,32768
+	rldicr	%r8,%r8,32,31
+	oris 	%r8,%r8,59904
+	lis	%r20,32768
+	ori	%r20,%r20,380
+	rldicr	%r20,%r20,32,31
+	oris	%r20,%r20,1024
+	ori	%r20,%r20,22980
+	lis	%r9,1024
+	lis	%r10,256
+	li	%r11,0
+	blr
+	init_pci:
+	addi	%r3,%r20, -4
+	li	%r30,512
+	oris	%r30,%r30,32768
+	rldicr	%r30,%r30,32,31
+	pci_start:
+	lwzu	%r4,4(%r3)
+	cmpwi	%r4,-1
+	beqlr
+	lwzu    %r31,4(%r3)
+	stwbrx	%r31,%r30,%r4
+	li	%r31,255
+	andc	%r4,%r4,%r31
+	ori	%r4,%r4,4
+	lwbrx	%r31,%r30,%r4
+	lwzu    %r29,4(%r3)
+	or	%r31,%r31,%r29
+	stwbrx	%r31,%r30,%r4
+	b pci_start
+	pci_inits:
+	.long 3489660944,3925868544,342
+	.long 3489693712,3758096384,2
+	.long 3489726480,3967811584,2
+	.long 3490709520,3925874688,2
+	.long 3490742288,3925873152,6
+	.long 3490742292,3925873184,6
+	.long 3490775056,3925873408,6
+	.long 3490775060,3925873440,6
+	.long 3490840592,3925876736,342
+	.long 3490844688,3925880832,262
+	.long 3490873360,3925884928,342
+	.long 3490877456,3925889024,262
+	.long 3490938896,3925873664,6
+	.long 3490971664,3925917696,6
+	.long 3490971668,3355443200,6
+	.long 3491004432,3925874176,6
+	.long 3491037200,3925872640,2
+	.long 4294967295
+[!ASM]
+

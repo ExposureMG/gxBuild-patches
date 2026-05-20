@@ -83,6 +83,71 @@ fn hex_format(data: &[u8]) -> String {
         .join(" ")
 }
 
+fn parse_gxs_file_recursive(dir: &Path, filename: &str, visited: &mut std::collections::HashSet<String>) -> Result<Vec<GxsRecord>> {
+    let file_path = dir.join(filename);
+    
+    // Prevent circular includes
+    let canonical_path = fs::canonicalize(&file_path)
+        .with_context(|| format!("Failed to canonicalize file: {}", file_path.display()))?;
+    let path_str = canonical_path.to_string_lossy().to_string();
+    
+    if visited.contains(&path_str) {
+        return Err(anyhow::anyhow!("Circular include detected: {}", filename));
+    }
+    visited.insert(path_str);
+    
+    let content = fs::read_to_string(&file_path)
+        .with_context(|| format!("Failed to read file: {}", file_path.display()))?;
+    
+    let lines: Vec<&str> = content.lines().collect();
+    let mut records = Vec::new();
+    let mut i = 0;
+    
+    while i < lines.len() {
+        let line = lines[i].trim();
+        
+        // Check for include directive
+        if line.starts_with("[INC]") {
+            let include_filename = line[5..].trim();
+            if !include_filename.is_empty() {
+                let mut included_records = parse_gxs_file_recursive(dir, include_filename, visited)?;
+                records.append(&mut included_records);
+            }
+            i += 1;
+            continue;
+        }
+        
+        // Check for ASM section
+        if line.starts_with("[ASM]") {
+            if let Some(asm_section) = parse_asm_section(&lines, i) {
+                let hex_bytes = compile_asm_section(&asm_section)?;
+                records.push(GxsRecord {
+                    addr: asm_section.addr,
+                    data: hex_bytes,
+                });
+                // Skip to [!ASM]
+                while i < lines.len() && !lines[i].trim().starts_with("[!ASM]") {
+                    i += 1;
+                }
+                i += 1; // Skip [!ASM] marker
+                continue;
+            }
+        }
+        
+        // Parse regular GXS line
+        if let Some(rec) = parse_gxs_line(line) {
+            records.push(rec);
+        }
+        
+        i += 1;
+    }
+    
+    // Remove from visited set to allow re-inclusion in other branches
+    visited.remove(&path_str);
+    
+    Ok(records)
+}
+
 fn parse_gxs_line(line: &str) -> Option<GxsRecord> {
     let line = line.trim();
     if line.is_empty() || line.starts_with('#') {
@@ -395,29 +460,29 @@ fn main() -> Result<()> {
                                     println!("  Compiled ASM at 0x{:08X}", asm_section.addr);
                                 }
                                 Err(e) => {
-                                    return Err(anyhow::anyhow!("Failed to compile ASM at 0x{:08X}: {}", asm_section.addr, e));
+                                    eprintln!("Error: Failed to compile ASM at 0x{:08X}: {}", asm_section.addr, e);
+                                    return Err(e);
                                 }
                             }
-                            // Skip to next section
-                            i += 1;
-                            while i < lines.len() {
-                                let next_line = lines[i].trim();
-                                if next_line.is_empty() || next_line.starts_with('#') {
-                                    i += 1;
-                                    continue;
-                                }
-                                if next_line.starts_with('[') || next_line.starts_with('.') {
-                                    break;
-                                }
-                                i += 1;
-                            }
-                        } else {
+                        }
+                        // Skip to next section
+                        while i < lines.len() && !lines[i].trim().starts_with("[!ASM]") {
                             i += 1;
                         }
-                    } else if let Some(rec) = parse_gxs_line(line) {
-                        records.push(rec);
+                        i += 1; // Skip [!ASM] marker
+                    } else if line.starts_with("[INC]") {
+                        // Handle include directive
+                        let include_filename = line[5..].trim();
+                        if !include_filename.is_empty() {
+                            let mut included_records = parse_gxs_file_recursive(Path::new(&input_dir), include_filename, &mut std::collections::HashSet::new())?;
+                            records.append(&mut included_records);
+                        }
                         i += 1;
                     } else {
+                        // Parse regular GXS line
+                        if let Some(rec) = parse_gxs_line(line) {
+                            records.push(rec);
+                        }
                         i += 1;
                     }
                 }

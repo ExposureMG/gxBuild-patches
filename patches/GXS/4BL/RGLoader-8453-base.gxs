@@ -1,0 +1,40 @@
+# RGLoader 8453 Base Patch
+# Converted from txt format to GXS 2.0 format
+
+# remove CE hash check
+# (branch conditionally -> branch)
+0xC38: 48 00 00 14
+
+# remove CE validity check
+# (branch conditionally -> nop)
+0xCDC: 60 00 00 00
+
+# remove CE validity check
+# (branch conditionally -> nop)
+0xCEC: 60 00 00 00
+
+# remove CE validity check
+# (branch conditionally -> nop)
+0xCF8: 60 00 00 00
+
+# remove CE validity check
+# (branch conditionally -> nop)
+0xD04: 60 00 00 00
+
+# remove CF signature check
+# (branch conditionally -> nop)
+0x7E4: 60 00 00 00
+
+# remove CF/CG hash check
+# (li r3, 0 -> li r3, 1)
+0x19F8: 38 60 00 01
+
+# remove unpaired bit from bootloader flags
+[ASM] 0xE3C:
+	or %r11, %r11, %r10
+	xori %r11, %r11, 1
+[!ASM]
+
+# some kinda salt, helps stop CB/kernel from freezing after glitched hash check
+# That's all folks!
+0x5BEF: 54 68 61 74 27 73 20 61 6C 6C 20 66 6F 6C 6B 73 21

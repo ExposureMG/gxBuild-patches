@@ -1,0 +1,39 @@
+# RGLoader 9452 Base Patch
+# Converted from txt format to GXS 2.0 format
+
+# remove CE hash check
+# (branch conditionally -> branch)
+0xC4C: 60 00 00 00
+
+# remove CF signature check
+# (branch conditionally -> nop)
+0xD9C: 60 00 00 00
+
+# remove CF/CG hash check
+# (li r3, 0 -> li r3, 1)
+#.data 0xDA4
+#48 00 00 84
+#.eod
+
+#fix zero pair issue
+#.data 0xC8C
+#39 40 00 00
+#.eod
+
+#.data 0xE28
+#39 60 00 00
+#.eod
+
+#.data 0xE40
+#60 00 00 00
+#.eod
+
+0xCA8: 48 00 01 9C
+
+# remove unpaired bit from bootloader flags
+[ASM] 0xE54:
+	or %r11, %r11, %r10 # do what we patched did originally
+	li %r4, 33
+	andc %r11, %r11, %r4 # clear bit
+	ori %r11, %r11, 12
+[!ASM]

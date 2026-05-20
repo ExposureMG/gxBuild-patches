@@ -1,0 +1,13 @@
+# Test GXS file with ASM section
+
+# Regular hex patch
+0x1000: 48 00 00 01
+
+# ASM section that will be compiled
+[ASM] 0x2000:
+	mfmsr   %r5
+	li      %r6, 0x10
+	andc    %r6, %r5, %r6
+
+# Another regular patch
+0x3000: 60 00 00 00

@@ -1,7 +1,12 @@
 # GXP Sources
 
-Source code for GXP, GXS and JSON patches.
+Unlicensed repo of source code for GXP, GXS and JSON patches.
 
+## Disclaimer
+
+I did not make a SINGLE PATCH in this repo! I have translated a few to my own formats but this is entierely based on the work of other people!
+
+I am NOT taking credit for these.
 
 ## About
 
@@ -9,7 +14,7 @@ Types:
 
 JSON: Signature and wildcard based patches, Mostly for SMC
 
-GXS / GxSource: Loaderpatch-like Addr:Data patches
+GXS / GxSource: Loaderpatch-like Addr:Data patches with PPC ASM functionality
 
 XEP / XEPATCH: Traditional xeBuild patches
 
@@ -19,7 +24,7 @@ GXP: Compiled multi-section patch binary
 
 ## Converter
 
-In [src](/src)
+In [src](/src), there is a rust tool to convert
 
 
 ## Developer

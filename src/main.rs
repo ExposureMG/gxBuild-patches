@@ -1,8 +1,11 @@
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use std::fs::{self, File};
-use std::io::{Read, Write, BufRead, BufReader};
+use std::io::{Write, BufRead, BufReader};
 use std::path::Path;
+use std::process::Command;
+use std::env;
+use tempfile::NamedTempFile;
 
 #[derive(Parser)]
 #[command(name = "gxp-converter")]
@@ -68,6 +71,11 @@ struct GxsRecord {
     data: Vec<u8>,
 }
 
+struct AsmSection {
+    addr: u32,
+    code: String,
+}
+
 fn hex_format(data: &[u8]) -> String {
     data.iter()
         .map(|b| format!("{:02X}", b))
@@ -100,6 +108,141 @@ fn parse_gxs_line(line: &str) -> Option<GxsRecord> {
         .collect();
 
     Some(GxsRecord { addr, data })
+}
+
+fn parse_asm_section(lines: &[&str], start_idx: usize) -> Option<AsmSection> {
+    if start_idx >= lines.len() {
+        return None;
+    }
+
+    let first_line = lines[start_idx].trim();
+    if !first_line.starts_with("[ASM]") {
+        return None;
+    }
+
+    // Extract address from [ASM] 0xADDR:
+    let addr_part = first_line.strip_prefix("[ASM]")?.trim();
+    let addr_str = addr_part.strip_suffix(':')?.trim();
+    let addr = if addr_str.starts_with("0x") {
+        u32::from_str_radix(&addr_str[2..], 16).ok()?
+    } else {
+        addr_str.parse().ok()?
+    };
+
+    // Collect ASM code lines
+    let mut code_lines = Vec::new();
+    for &line in &lines[start_idx + 1..] {
+        let trimmed = line.trim();
+        if trimmed.is_empty() || trimmed.starts_with('#') {
+            continue;
+        }
+        // Stop at next section or directive
+        if trimmed.starts_with('[') || trimmed.starts_with('.') {
+            break;
+        }
+        code_lines.push(trimmed);
+    }
+
+    if code_lines.is_empty() {
+        return None;
+    }
+
+    Some(AsmSection {
+        addr,
+        code: code_lines.join("\n"),
+    })
+}
+
+fn compile_asm_section(asm: &AsmSection) -> Result<Vec<u8>> {
+    let os = env::consts::OS;
+    
+    match os {
+        "linux" => compile_asm_linux(asm),
+        "windows" => compile_asm_windows(asm),
+        _ => Err(anyhow::anyhow!("ASM compilation not supported on {}", os)),
+    }
+}
+
+fn compile_asm_linux(asm: &AsmSection) -> Result<Vec<u8>> {
+    // Create temporary assembly file
+    let asm_file = NamedTempFile::with_suffix(".s")?;
+    let obj_file = NamedTempFile::with_suffix(".o")?;
+    let bin_file = NamedTempFile::with_suffix(".bin")?;
+    
+    // Write assembly with proper directives
+    let asm_content = format!(
+        "\n\n    .org 0x{:08X}\n    .globl _start\n_start:\n{}\n",
+        asm.addr, asm.code
+    );
+    fs::write(asm_file.path(), asm_content)?;
+    
+    // Compile with powerpc-linux-gnu-as
+    let output = Command::new("powerpc-linux-gnu-as")
+        .arg("-o")
+        .arg(obj_file.path())
+        .arg(asm_file.path())
+        .output()
+        .context("Failed to run powerpc-linux-gnu-as. Install with: sudo apt-get install binutils-powerpc-linux-gnu")?;
+    
+    if !output.status.success() {
+        return Err(anyhow::anyhow!("Assembly compilation failed: {}", String::from_utf8_lossy(&output.stderr)));
+    }
+    
+    // Extract raw binary
+    let output = Command::new("powerpc-linux-gnu-objcopy")
+        .arg("-O")
+        .arg("binary")
+        .arg(obj_file.path())
+        .arg(bin_file.path())
+        .output()
+        .context("Failed to run powerpc-linux-gnu-objcopy")?;
+    
+    if !output.status.success() {
+        return Err(anyhow::anyhow!("Object copy failed: {}", String::from_utf8_lossy(&output.stderr)));
+    }
+    
+    fs::read(bin_file.path()).context("Failed to read compiled binary")
+}
+
+fn compile_asm_windows(asm: &AsmSection) -> Result<Vec<u8>> {
+    // Create temporary assembly file
+    let asm_file = NamedTempFile::with_suffix(".s")?;
+    let obj_file = NamedTempFile::with_suffix(".o")?;
+    let bin_file = NamedTempFile::with_suffix(".bin")?;
+    
+    // Write assembly with proper directives
+    let asm_content = format!(
+        "\n\n    .org 0x{:08X}\n    .globl _start\n_start:\n{}\n",
+        asm.addr, asm.code
+    );
+    fs::write(asm_file.path(), asm_content)?;
+    
+    // Compile with xenon-as.exe (assuming it's in PATH)
+    let output = Command::new("xenon-as.exe")
+        .arg("-o")
+        .arg(obj_file.path())
+        .arg(asm_file.path())
+        .output()
+        .context("Failed to run xenon-as.exe. Ensure Xenon GCC toolchain is in PATH")?;
+    
+    if !output.status.success() {
+        return Err(anyhow::anyhow!("Assembly compilation failed: {}", String::from_utf8_lossy(&output.stderr)));
+    }
+    
+    // Extract raw binary
+    let output = Command::new("xenon-objcopy.exe")
+        .arg("-O")
+        .arg("binary")
+        .arg(obj_file.path())
+        .arg(bin_file.path())
+        .output()
+        .context("Failed to run xenon-objcopy.exe")?;
+    
+    if !output.status.success() {
+        return Err(anyhow::anyhow!("Object copy failed: {}", String::from_utf8_lossy(&output.stderr)));
+    }
+    
+    fs::read(bin_file.path()).context("Failed to read compiled binary")
 }
 
 fn main() -> Result<()> {
@@ -215,9 +358,52 @@ fn main() -> Result<()> {
                 let reader = BufReader::new(file);
                 
                 let mut records = Vec::new();
+                let mut lines = Vec::new();
                 for line in reader.lines() {
-                    if let Some(rec) = parse_gxs_line(&line?) {
+                    lines.push(line?);
+                }
+                
+                // Parse GXS lines and ASM sections
+                let mut i = 0;
+                while i < lines.len() {
+                    let line = lines[i].trim();
+                    
+                    if line.starts_with("[ASM]") {
+                        // Parse ASM section
+                        if let Some(asm_section) = parse_asm_section(&lines.iter().map(|s| s.as_str()).collect::<Vec<_>>(), i) {
+                            match compile_asm_section(&asm_section) {
+                                Ok(compiled_data) => {
+                                    records.push(GxsRecord {
+                                        addr: asm_section.addr,
+                                        data: compiled_data,
+                                    });
+                                    println!("  Compiled ASM at 0x{:08X}", asm_section.addr);
+                                }
+                                Err(e) => {
+                                    eprintln!("  Warning: Failed to compile ASM at 0x{:08X}: {}", asm_section.addr, e);
+                                }
+                            }
+                            // Skip to next section
+                            i += 1;
+                            while i < lines.len() {
+                                let next_line = lines[i].trim();
+                                if next_line.is_empty() || next_line.starts_with('#') {
+                                    i += 1;
+                                    continue;
+                                }
+                                if next_line.starts_with('[') || next_line.starts_with('.') {
+                                    break;
+                                }
+                                i += 1;
+                            }
+                        } else {
+                            i += 1;
+                        }
+                    } else if let Some(rec) = parse_gxs_line(line) {
                         records.push(rec);
+                        i += 1;
+                    } else {
+                        i += 1;
                     }
                 }
 

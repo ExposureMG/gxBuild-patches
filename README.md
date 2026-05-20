@@ -8,33 +8,43 @@ I did not make a SINGLE PATCH in this repo! I have translated a few to my own fo
 
 I am NOT taking credit for these.
 
+## Contains
+
+- RGLoader KHV and XAM (XEPATCH)
+- RGLoader 2BL and 4BL (GXS)
+- AudClamp (GXS)
+- ArgonData (GXS)
+- Glitch3 v2 (GXS)
+- Glitch1/2 (JSON)
+- SMC+ (JSON)
+- FZJ JTAG Fix (JSON)
+- Eject Disable (JSON)
+- No Drive Blink (JSON)
+- PCI Mask Fix (JSON)
+- PNC Disable (JSON)
+- "Unconditional Boot" (JSON)
+
+
 ## About
 
 Types:
 
 JSON: Signature and wildcard based patches, Mostly for SMC
 
-GXS / GxSource: Loaderpatch-like Addr:Data patches with PPC ASM functionality
+GXS: Loaderpatch-like Addr:Data patches with PPC ASM functionality
 
-XEP / XEPATCH: Traditional xeBuild patches
-
+XEPATCH: Traditional xeBuild patches
 
 GXP: Compiled multi-section patch binary
 
 
 ## Converter
 
-In [src](/src), there is a rust tool to convert
+In [src](/src), there is a rust tool to:
 
-
-## Developer
-
-View [releases]() and [src] for a full-fledged patch converter:
-
-- Compiled xeBuild to GXS
-- Compiled RGH 1.3 to GXS
-- Binary Diff to GXS
-- GXP Builder
+- Convert XEPATCH to GXS
+- Create GXS from a diff
+- Compile and Pack GXS sections into a GXP binary
 
 ## License
 

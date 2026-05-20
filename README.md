@@ -1,22 +1,25 @@
 # GXP Sources
 
-Source code for GXP, GXS and JSON patches. The files hosted here will likely not work with any builder other then [gxBuild](https://github.com/ExposureMG/gxBuild).
-
-Also contains a Patch Converter (gxp-converter)
+Source code for GXP, GXS and JSON patches.
 
 
 ## About
 
-Supported Types:
+Types:
 
-JSON: Signature and wildcard based patches, intended to be inputted and applied by the user
+JSON: Signature and wildcard based patches, Mostly for SMC
 
 GXS / GxSource: Loaderpatch-like Addr:Data patches
 
-XEP / XEPATCH: Traditional xeBuild patching
+XEP / XEPATCH: Traditional xeBuild patches
 
 
 GXP: Compiled multi-section patch binary
+
+
+## Converter
+
+In [src](/src)
 
 
 ## Developer
